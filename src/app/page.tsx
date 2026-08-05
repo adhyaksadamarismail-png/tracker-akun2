@@ -8,6 +8,7 @@ import AddAccountModal from '../components/AddAccountModal';
 import EditAccountModal from '../components/EditAccountModal';
 import AddBrandModal from '../components/AddBrandModal';
 import DeleteConfirmModal from '../components/DeleteConfirmModal';
+import ImportAccountModal from '../components/ImportAccountModal';
 import { useVoucherTracker } from '../lib/store';
 import { Account, CreateAccountInput, BrandType } from '../lib/types';
 import { Search, Sparkles } from 'lucide-react';
@@ -23,6 +24,7 @@ export default function Home() {
 
   // Modals visibility state
   const [isAddAccountOpen, setIsAddAccountOpen] = useState(false);
+  const [isImportAccountOpen, setIsImportAccountOpen] = useState(false);
   const [isEditAccountOpen, setIsEditAccountOpen] = useState(false);
   const [isAddBrandOpen, setIsAddBrandOpen] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
@@ -38,6 +40,7 @@ export default function Home() {
     isLoading,
     addBrand,
     addAccount,
+    importAccountsBatch,
     toggleVoucherStatus,
     updateAccount,
     deleteAccount,
@@ -115,6 +118,10 @@ export default function Home() {
     addAccount(input);
   };
 
+  const handleImportAccounts = (brandId: string, rawText: string) => {
+    return importAccountsBatch(brandId, rawText);
+  };
+
   const handleCreateBrand = (name: string, icon: string, type: BrandType) => {
     addBrand(name, icon, type);
   };
@@ -152,6 +159,7 @@ export default function Home() {
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
         onOpenAddAccount={() => setIsAddAccountOpen(true)}
+        onOpenImportAccount={() => setIsImportAccountOpen(true)}
         onOpenAddBrand={() => setIsAddBrandOpen(true)}
         onLogout={handleLogout}
       />
@@ -215,7 +223,6 @@ export default function Home() {
           <div>
             {brands.map((brand) => {
               const brandAccounts = filteredAccounts.filter((acc) => acc.brand_id === brand.id);
-              // Hide brand if search query is active and brand has 0 matching accounts
               if (searchQuery.trim() && brandAccounts.length === 0) {
                 return null;
               }
@@ -253,6 +260,13 @@ export default function Home() {
         onClose={() => setIsAddAccountOpen(false)}
         brands={brands}
         onSubmit={handleCreateAccount}
+      />
+
+      <ImportAccountModal
+        isOpen={isImportAccountOpen}
+        onClose={() => setIsImportAccountOpen(false)}
+        brands={brands}
+        onImport={handleImportAccounts}
       />
 
       <EditAccountModal

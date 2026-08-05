@@ -1,12 +1,13 @@
 'use client';
 
 import React from 'react';
-import { Search, Plus, FolderPlus, LogOut } from 'lucide-react';
+import { Search, Plus, FolderPlus, LogOut, Download } from 'lucide-react';
 
 interface HeaderProps {
   searchQuery: string;
   onSearchChange: (query: string) => void;
   onOpenAddAccount: () => void;
+  onOpenImportAccount: () => void;
   onOpenAddBrand: () => void;
   onLogout: () => void;
 }
@@ -15,6 +16,7 @@ export default function Header({
   searchQuery,
   onSearchChange,
   onOpenAddAccount,
+  onOpenImportAccount,
   onOpenAddBrand,
   onLogout,
 }: HeaderProps) {
@@ -48,10 +50,10 @@ export default function Header({
           </div>
 
           {/* Controls: Search & Action Buttons */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
             
             {/* Search Input */}
-            <div className="relative flex-1 sm:w-64">
+            <div className="relative flex-1 sm:w-60">
               <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
                 <Search className="w-4 h-4" />
               </div>
@@ -65,21 +67,30 @@ export default function Header({
               {searchQuery && (
                 <button
                   onClick={() => onSearchChange('')}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-xs text-slate-400 hover:text-slate-600"
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-xs text-slate-400 hover:text-slate-600 cursor-pointer"
                 >
                   ✕
                 </button>
               )}
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
               {/* Add Brand Button */}
               <button
                 onClick={onOpenAddBrand}
-                className="py-2.5 px-3.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-xs sm:text-sm rounded-2xl transition-all flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap"
+                className="py-2.5 px-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-xs sm:text-sm rounded-2xl transition-all flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap"
               >
                 <FolderPlus className="w-4 h-4 text-slate-600" />
                 <span>+ Brand</span>
+              </button>
+
+              {/* Bulk Import Button */}
+              <button
+                onClick={onOpenImportAccount}
+                className="py-2.5 px-3.5 bg-sky-50 hover:bg-sky-100 text-sky-700 border border-sky-200/80 font-medium text-xs sm:text-sm rounded-2xl transition-all flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap"
+              >
+                <Download className="w-4 h-4 text-sky-600" />
+                <span>📥 Import Akun</span>
               </button>
 
               {/* Add Account Button */}

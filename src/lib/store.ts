@@ -5,6 +5,12 @@ import { supabase, isSupabaseConfigured } from './supabase';
 const LOCAL_STORAGE_KEY_BRANDS = 'tracker_voucher_brands_v1';
 const LOCAL_STORAGE_KEY_ACCOUNTS = 'tracker_voucher_accounts_v1';
 
+export interface ImportResult {
+  successCount: number;
+  failedCount: number;
+  failedDetails: Array<{ phone: string; reason: string }>;
+}
+
 // Seed Brands
 const DEFAULT_BRANDS: Brand[] = [
   { id: 'b-1', name: 'Kopi Kenangan', icon: '☕', type: 'kopi_kenangan', sort_order: 1 },
@@ -67,7 +73,6 @@ export function useVoucherTracker() {
 
     if (isSupabaseConfigured) {
       try {
-        // Fetch Brands from Supabase
         const { data: dbBrands, error: bError } = await supabase
           .from('brands')
           .select('*')
@@ -76,12 +81,10 @@ export function useVoucherTracker() {
         if (!bError && dbBrands && dbBrands.length > 0) {
           setBrands(dbBrands);
         } else {
-          // If brands table is empty, seed defaults
           await supabase.from('brands').insert(DEFAULT_BRANDS);
           setBrands(DEFAULT_BRANDS);
         }
 
-        // Fetch Accounts & Vouchers from Supabase
         const { data: dbAccounts, error: aError } = await supabase
           .from('accounts')
           .select('*, vouchers(*)');
@@ -122,7 +125,6 @@ export function useVoucherTracker() {
     }
   };
 
-  // Sync to Local Storage if Supabase is not configured
   const saveLocal = (newBrands: Brand[], newAccounts: Account[]) => {
     if (typeof window === 'undefined') return;
     try {
@@ -187,7 +189,7 @@ export function useVoucherTracker() {
     }
   };
 
-  // 2. Add Account
+  // 2. Add Single Account
   const addAccount = async (input: CreateAccountInput) => {
     const targetBrand = brands.find((b) => b.id === input.brand_id);
     const newAccId = generateId();
@@ -225,7 +227,6 @@ export function useVoucherTracker() {
         });
       }
     } else if (targetBrand?.type === 'kopken_baperan') {
-      // 1 account = 1 voucher
       createdVouchers.push({
         id: generateId(),
         account_id: newAccId,
@@ -233,7 +234,6 @@ export function useVoucherTracker() {
         status: 'tersedia',
       });
     } else if (targetBrand?.type === 'tomoro') {
-      // 1 account = 1 B1G1 and 1 50%
       createdVouchers.push({
         id: generateId(),
         account_id: newAccId,
@@ -249,7 +249,6 @@ export function useVoucherTracker() {
         status: 'tersedia',
       });
     } else {
-      // Custom Brand
       if (input.custom_vouchers && input.custom_vouchers.length > 0) {
         input.custom_vouchers.forEach((v) => {
           createdVouchers.push({
@@ -312,7 +311,149 @@ export function useVoucherTracker() {
     }
   };
 
-  // 3. Toggle Voucher Status
+  // 3. BULK IMPORT ACCOUNTS
+  const importAccountsBatch = (brandId: string, rawText: string): ImportResult => {
+    const targetBrand = brands.find((b) => b.id === brandId);
+    if (!targetBrand) {
+      return { successCount: 0, failedCount: 0, failedDetails: [] };
+    }
+
+    // Split raw text by newline or comma/space
+    const lines = rawText
+      .split(/[\r\n]+/)
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0);
+
+    const existingPhoneSet = new Set(accounts.map((acc) => acc.phone_number.trim()));
+    const processedInCurrentBatch = new Set<string>();
+
+    const newAccounts: Account[] = [];
+    const allNewVouchers: Voucher[] = [];
+    const failedDetails: Array<{ phone: string; reason: string }> = [];
+
+    // Phone validation regex: 8-15 digits, starting with 0, +62, 62 or normal digits
+    const phoneRegex = /^(\+?62|0)?[0-9]{8,13}$/;
+
+    lines.forEach((line) => {
+      // Clean phone number (strip spaces/dashes)
+      const cleanPhone = line.replace(/[\s\-]/g, '');
+
+      // Validation 1: Format Check
+      if (!cleanPhone || !phoneRegex.test(cleanPhone)) {
+        failedDetails.push({ phone: line, reason: 'nomor tidak valid' });
+        return;
+      }
+
+      // Validation 2: Duplicate Check against DB / State or within current batch
+      if (existingPhoneSet.has(cleanPhone) || processedInCurrentBatch.has(cleanPhone)) {
+        failedDetails.push({ phone: cleanPhone, reason: 'sudah ada' });
+        return;
+      }
+
+      // Mark as processed in this batch
+      processedInCurrentBatch.add(cleanPhone);
+
+      const accId = generateId();
+      const accountVouchers: Voucher[] = [];
+
+      // Generate Vouchers per Brand Rule
+      if (targetBrand.type === 'kopi_kenangan') {
+        // Default: 0 vouchers for Tanpa Min, Min 50K, Min 70K
+        // accountVouchers remains []
+      } else if (targetBrand.type === 'kopken_baperan') {
+        // 1 Voucher Kopken Baperan (🟢 Tersedia)
+        accountVouchers.push({
+          id: generateId(),
+          account_id: accId,
+          title: 'Voucher Kopken Baperan',
+          status: 'tersedia',
+        });
+      } else if (targetBrand.type === 'tomoro') {
+        // 1 Voucher B1G1 and 1 Voucher 50% (🟢 Tersedia)
+        accountVouchers.push({
+          id: generateId(),
+          account_id: accId,
+          title: 'B1G1',
+          category: 'B1G1',
+          status: 'tersedia',
+        });
+        accountVouchers.push({
+          id: generateId(),
+          account_id: accId,
+          title: '50%',
+          category: '50%',
+          status: 'tersedia',
+        });
+      } else {
+        // Custom brand: 1 default voucher
+        accountVouchers.push({
+          id: generateId(),
+          account_id: accId,
+          title: `Voucher ${targetBrand.name}`,
+          status: 'tersedia',
+        });
+      }
+
+      const accObj: Account = {
+        id: accId,
+        brand_id: brandId,
+        phone_number: cleanPhone,
+        status: 'Aktif',
+        notes: 'Hasil Bulk Import',
+        created_at: new Date().toISOString(),
+        vouchers: accountVouchers,
+      };
+
+      newAccounts.push(accObj);
+      allNewVouchers.push(...accountVouchers);
+    });
+
+    if (newAccounts.length > 0) {
+      const updatedAccounts = [...newAccounts, ...accounts];
+      setAccounts(updatedAccounts);
+
+      if (isSupabaseConfigured) {
+        // Batch Insert to Supabase asynchronously
+        (async () => {
+          try {
+            await supabase.from('accounts').insert(
+              newAccounts.map((a) => ({
+                id: a.id,
+                brand_id: a.brand_id,
+                phone_number: a.phone_number,
+                status: a.status,
+                notes: a.notes,
+              }))
+            );
+
+            if (allNewVouchers.length > 0) {
+              await supabase.from('vouchers').insert(
+                allNewVouchers.map((v) => ({
+                  id: v.id,
+                  account_id: v.account_id,
+                  title: v.title,
+                  category: v.category,
+                  status: v.status,
+                }))
+              );
+            }
+          } catch (err) {
+            console.error('Supabase batch import error:', err);
+          }
+        })();
+      } else {
+        saveLocal(brands, updatedAccounts);
+      }
+    }
+
+    return {
+      successCount: newAccounts.length,
+      failedCount: failedDetails.length,
+      failedDetails,
+    };
+  };
+
+  // 4. Toggle Voucher Status
   const toggleVoucherStatus = async (voucherId: string, accountId: string) => {
     let nextStatus: VoucherStatus = 'tersedia';
 
@@ -343,7 +484,7 @@ export function useVoucherTracker() {
     }
   };
 
-  // 4. Update Account
+  // 5. Update Account
   const updateAccount = async (
     accountId: string,
     phone_number: string,
@@ -377,8 +518,6 @@ export function useVoucherTracker() {
           })
           .eq('id', accountId);
 
-        // Sync vouchers
-        // Delete removed ones and upsert updated ones
         const currentAcc = accounts.find((a) => a.id === accountId);
         const existingVoucherIds = (currentAcc?.vouchers || []).map((v) => v.id);
         const updatedVoucherIds = updatedVouchers.map((v) => v.id);
@@ -408,7 +547,7 @@ export function useVoucherTracker() {
     }
   };
 
-  // 5. Delete Account
+  // 6. Delete Account
   const deleteAccount = async (accountId: string) => {
     const updatedAccounts = accounts.filter((acc) => acc.id !== accountId);
     setAccounts(updatedAccounts);
@@ -430,6 +569,7 @@ export function useVoucherTracker() {
     isLoading,
     addBrand,
     addAccount,
+    importAccountsBatch,
     toggleVoucherStatus,
     updateAccount,
     deleteAccount,
