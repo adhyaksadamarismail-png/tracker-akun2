@@ -9,9 +9,10 @@ import EditAccountModal from '../components/EditAccountModal';
 import AddBrandModal from '../components/AddBrandModal';
 import DeleteConfirmModal from '../components/DeleteConfirmModal';
 import ImportAccountModal from '../components/ImportAccountModal';
+import ResetConfirmModal from '../components/ResetConfirmModal';
 import { useVoucherTracker } from '../lib/store';
-import { Account, CreateAccountInput, BrandType } from '../lib/types';
-import { Search, Sparkles } from 'lucide-react';
+import { Account, Brand, CreateAccountInput, BrandType } from '../lib/types';
+import { Search, Sparkles, CheckCircle2 } from 'lucide-react';
 
 const AUTH_KEY = 'tracker_voucher_auth_status';
 
@@ -22,16 +23,21 @@ export default function Home() {
   // Search state
   const [searchQuery, setSearchQuery] = useState('');
 
+  // Toast notification state
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
   // Modals visibility state
   const [isAddAccountOpen, setIsAddAccountOpen] = useState(false);
   const [isImportAccountOpen, setIsImportAccountOpen] = useState(false);
   const [isEditAccountOpen, setIsEditAccountOpen] = useState(false);
   const [isAddBrandOpen, setIsAddBrandOpen] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
 
-  // Selected account targets for edit/delete
+  // Selected targets for edit/delete/reset
   const [selectedAccountForEdit, setSelectedAccountForEdit] = useState<Account | null>(null);
   const [selectedAccountForDelete, setSelectedAccountForDelete] = useState<Account | null>(null);
+  const [selectedBrandForReset, setSelectedBrandForReset] = useState<Brand | null>(null);
 
   // Tracker store hook
   const {
@@ -44,8 +50,17 @@ export default function Home() {
     toggleVoucherStatus,
     updateAccount,
     deleteAccount,
+    resetBrandAccounts,
     generateId,
   } = useVoucherTracker();
+
+  // Show Toast Message helper
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => {
+      setToastMessage(null);
+    }, 4000);
+  };
 
   // Check auth session on load
   useEffect(() => {
@@ -113,6 +128,12 @@ export default function Home() {
     setIsDeleteConfirmOpen(true);
   };
 
+  // Handle Reset modal open
+  const handleOpenResetBrand = (brand: Brand) => {
+    setSelectedBrandForReset(brand);
+    setIsResetConfirmOpen(true);
+  };
+
   // Handlers for forms
   const handleCreateAccount = (input: CreateAccountInput) => {
     addAccount(input);
@@ -140,6 +161,14 @@ export default function Home() {
     deleteAccount(accountId);
   };
 
+  const handleConfirmResetBrand = (brandId: string) => {
+    const targetBrand = brands.find((b) => b.id === brandId);
+    resetBrandAccounts(brandId);
+    if (targetBrand) {
+      showToast(`✅ Seluruh akun ${targetBrand.name} berhasil direset.`);
+    }
+  };
+
   if (isAuthChecking) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
@@ -153,7 +182,16 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col font-sans pb-16">
+    <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col font-sans pb-16 relative">
+      
+      {/* Toast Notification Banner */}
+      {toastMessage && (
+        <div className="fixed top-5 left-1/2 -translate-x-1/2 z-50 bg-emerald-900 text-white px-5 py-3 rounded-2xl shadow-xl border border-emerald-700 flex items-center gap-2.5 text-xs font-semibold animate-in fade-in slide-in-from-top-4 duration-300">
+          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+          <span>{toastMessage}</span>
+        </div>
+      )}
+
       {/* Header Bar */}
       <Header
         searchQuery={searchQuery}
@@ -234,6 +272,7 @@ export default function Home() {
                   onToggleVoucher={toggleVoucherStatus}
                   onEditAccount={handleOpenEdit}
                   onDeleteAccount={handleOpenDelete}
+                  onResetBrand={handleOpenResetBrand}
                   defaultExpanded={true}
                 />
               );
@@ -246,7 +285,7 @@ export default function Home() {
             <p className="text-xs text-slate-400 mt-1 mb-4">Tambahkan brand pertama Anda untuk mulai mencatat voucher.</p>
             <button
               onClick={() => setIsAddBrandOpen(true)}
-              className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl text-xs font-semibold"
+              className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl text-xs font-semibold cursor-pointer"
             >
               + Tambah Brand
             </button>
@@ -288,6 +327,13 @@ export default function Home() {
         onClose={() => setIsDeleteConfirmOpen(false)}
         account={selectedAccountForDelete}
         onConfirm={handleConfirmDeleteAccount}
+      />
+
+      <ResetConfirmModal
+        isOpen={isResetConfirmOpen}
+        onClose={() => setIsResetConfirmOpen(false)}
+        brand={selectedBrandForReset}
+        onConfirm={handleConfirmResetBrand}
       />
     </div>
   );

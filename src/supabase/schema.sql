@@ -18,6 +18,8 @@ CREATE TABLE IF NOT EXISTS public.accounts (
     phone_number TEXT NOT NULL,
     status TEXT NOT NULL DEFAULT 'Aktif',
     notes TEXT DEFAULT '',
+    bagian_number INT DEFAULT NULL,
+    slot_number INT DEFAULT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 

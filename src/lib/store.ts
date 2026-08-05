@@ -18,7 +18,7 @@ const DEFAULT_BRANDS: Brand[] = [
   { id: 'b-3', name: 'Tomoro', icon: '🧋', type: 'tomoro', sort_order: 3 },
 ];
 
-// Seed Accounts to demonstrate immediate usability
+// Seed Accounts to demonstrate permanent slot system
 const DEFAULT_ACCOUNTS: Account[] = [
   {
     id: 'acc-1',
@@ -26,6 +26,8 @@ const DEFAULT_ACCOUNTS: Account[] = [
     phone_number: '081111111111',
     status: 'Aktif',
     notes: 'Kopi Kenangan Bagian 1 (Nomor 1)',
+    bagian_number: 1,
+    slot_number: 1,
     created_at: new Date(Date.now() - 10000).toISOString(),
     vouchers: [
       { id: 'v-1', account_id: 'acc-1', title: 'Tanpa Min', category: 'Tanpa Min', status: 'tersedia' },
@@ -39,6 +41,8 @@ const DEFAULT_ACCOUNTS: Account[] = [
     phone_number: '081111111112',
     status: 'Aktif',
     notes: 'Kopi Kenangan Bagian 1 (Nomor 2)',
+    bagian_number: 1,
+    slot_number: 2,
     created_at: new Date(Date.now() - 9000).toISOString(),
     vouchers: [
       { id: 'v-4', account_id: 'acc-2', title: 'Tanpa Min', category: 'Tanpa Min', status: 'tersedia' },
@@ -52,6 +56,8 @@ const DEFAULT_ACCOUNTS: Account[] = [
     phone_number: '081111111113',
     status: 'Aktif',
     notes: 'Kopi Kenangan Bagian 1 (Nomor 3)',
+    bagian_number: 1,
+    slot_number: 3,
     created_at: new Date(Date.now() - 8000).toISOString(),
     vouchers: [
       { id: 'v-7', account_id: 'acc-3', title: 'Tanpa Min', category: 'Tanpa Min', status: 'tersedia' },
@@ -84,12 +90,45 @@ const DEFAULT_ACCOUNTS: Account[] = [
   },
 ];
 
+/**
+ * Helper to find the earliest available permanent slot for Kopi Kenangan
+ */
+
 export function useVoucherTracker() {
   const [brands, setBrands] = useState<Brand[]>(DEFAULT_BRANDS);
   const [accounts, setAccounts] = useState<Account[]>(DEFAULT_ACCOUNTS);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   const generateId = () => 'id_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now();
+
+  const getNextSlotForKopiKenangan = (currentAccounts: Account[], brandId: string) => {
+    const kkAccounts = currentAccounts.filter((a) => a.brand_id === brandId);
+    
+    // Map existing occupied slots
+    const occupiedSlots = new Set<string>();
+    let maxBagian = 1;
+
+    kkAccounts.forEach((acc) => {
+      if (acc.bagian_number && acc.slot_number) {
+        occupiedSlots.add(`${acc.bagian_number}_${acc.slot_number}`);
+        if (acc.bagian_number > maxBagian) {
+          maxBagian = acc.bagian_number;
+        }
+      }
+    });
+
+    // Search for earliest vacant slot across existing Bagians
+    for (let b = 1; b <= maxBagian; b++) {
+      for (let s = 1; s <= 3; s++) {
+        if (!occupiedSlots.has(`${b}_${s}`)) {
+          return { bagian_number: b, slot_number: s };
+        }
+      }
+    }
+
+    // If all existing Bagians are full (3 accounts each), create Bagian N+1 starting at Slot 1
+    return { bagian_number: maxBagian + 1, slot_number: 1 };
+  };
 
   // Load Initial Data
   const loadData = useCallback(async () => {
@@ -214,14 +253,20 @@ export function useVoucherTracker() {
     }
   };
 
-  // 2. Add Single Account (Appended to preserve order)
+  // 2. Add Single Account (Fills earliest vacant permanent slot for Kopi Kenangan)
   const addAccount = async (input: CreateAccountInput) => {
     const targetBrand = brands.find((b) => b.id === input.brand_id);
     const newAccId = generateId();
 
     const createdVouchers: Voucher[] = [];
+    let bagian_number: number | undefined = undefined;
+    let slot_number: number | undefined = undefined;
 
     if (targetBrand?.type === 'kopi_kenangan') {
+      const nextSlot = getNextSlotForKopiKenangan(accounts, input.brand_id);
+      bagian_number = nextSlot.bagian_number;
+      slot_number = nextSlot.slot_number;
+
       const { tanpa_min_count = 1, min_50k_count = 1, min_70k_count = 1 } = input;
 
       for (let i = 0; i < tanpa_min_count; i++) {
@@ -300,11 +345,12 @@ export function useVoucherTracker() {
       phone_number: input.phone_number.trim(),
       status: input.status || 'Aktif',
       notes: input.notes || '',
+      bagian_number,
+      slot_number,
       created_at: new Date().toISOString(),
       vouchers: createdVouchers,
     };
 
-    // Appended to preserve order so it lands in the last Bagian slot or creates a new Bagian!
     const updatedAccounts = [...accounts, newAccount];
     setAccounts(updatedAccounts);
 
@@ -316,6 +362,8 @@ export function useVoucherTracker() {
           phone_number: newAccount.phone_number,
           status: newAccount.status,
           notes: newAccount.notes,
+          bagian_number: newAccount.bagian_number,
+          slot_number: newAccount.slot_number,
         });
 
         if (createdVouchers.length > 0) {
@@ -337,7 +385,7 @@ export function useVoucherTracker() {
     }
   };
 
-  // 3. BULK IMPORT ACCOUNTS (Strict order preservation)
+  // 3. BULK IMPORT ACCOUNTS (Fills vacant permanent slots sequentially)
   const importAccountsBatch = (brandId: string, rawText: string): ImportResult => {
     const targetBrand = brands.find((b) => b.id === brandId);
     if (!targetBrand) {
@@ -358,6 +406,9 @@ export function useVoucherTracker() {
 
     const phoneRegex = /^(\+?62|0)?[0-9]{8,14}$/;
     const baseTimestamp = Date.now();
+
+    // Keep track of current accumulated accounts during batch iteration
+    let runningAccounts = [...accounts];
 
     lines.forEach((line, index) => {
       const cleanPhone = line.replace(/[\s\-]/g, '');
@@ -381,8 +432,14 @@ export function useVoucherTracker() {
 
       const accId = generateId();
       const accountVouchers: Voucher[] = [];
+      let bagian_number: number | undefined = undefined;
+      let slot_number: number | undefined = undefined;
 
       if (targetBrand.type === 'kopi_kenangan') {
+        const nextSlot = getNextSlotForKopiKenangan(runningAccounts, brandId);
+        bagian_number = nextSlot.bagian_number;
+        slot_number = nextSlot.slot_number;
+
         accountVouchers.push({
           id: generateId(),
           account_id: accId,
@@ -435,7 +492,6 @@ export function useVoucherTracker() {
         });
       }
 
-      // Increment created_at by index milliseconds to guarantee strict chronological ordering
       const accCreatedAt = new Date(baseTimestamp + index * 10).toISOString();
 
       const accObj: Account = {
@@ -444,16 +500,18 @@ export function useVoucherTracker() {
         phone_number: cleanPhone,
         status: 'Aktif',
         notes: 'Hasil Bulk Import',
+        bagian_number,
+        slot_number,
         created_at: accCreatedAt,
         vouchers: accountVouchers,
       };
 
       newAccounts.push(accObj);
       allNewVouchers.push(...accountVouchers);
+      runningAccounts.push(accObj);
     });
 
     if (newAccounts.length > 0) {
-      // Append to existing accounts to maintain strict insertion order!
       const updatedAccounts = [...accounts, ...newAccounts];
       setAccounts(updatedAccounts);
 
@@ -467,6 +525,8 @@ export function useVoucherTracker() {
                 phone_number: a.phone_number,
                 status: a.status,
                 notes: a.notes,
+                bagian_number: a.bagian_number,
+                slot_number: a.slot_number,
                 created_at: a.created_at,
               }))
             );
@@ -592,7 +652,7 @@ export function useVoucherTracker() {
     }
   };
 
-  // 6. Delete Account (Auto re-indexes Bagian sequentially)
+  // 6. Delete Account (Keeps other accounts in their exact permanent slot, leaving vacant slot!)
   const deleteAccount = async (accountId: string) => {
     const updatedAccounts = accounts.filter((acc) => acc.id !== accountId);
     setAccounts(updatedAccounts);
@@ -602,6 +662,22 @@ export function useVoucherTracker() {
         await supabase.from('accounts').delete().eq('id', accountId);
       } catch (err) {
         console.error('Supabase delete account error:', err);
+      }
+    } else {
+      saveLocal(brands, updatedAccounts);
+    }
+  };
+
+  // 7. RESET BRAND ACCOUNTS (Deletes all accounts & vouchers for a specific brand only)
+  const resetBrandAccounts = async (brandId: string) => {
+    const updatedAccounts = accounts.filter((acc) => acc.brand_id !== brandId);
+    setAccounts(updatedAccounts);
+
+    if (isSupabaseConfigured) {
+      try {
+        await supabase.from('accounts').delete().eq('brand_id', brandId);
+      } catch (err) {
+        console.error('Supabase reset brand accounts error:', err);
       }
     } else {
       saveLocal(brands, updatedAccounts);
@@ -618,6 +694,7 @@ export function useVoucherTracker() {
     toggleVoucherStatus,
     updateAccount,
     deleteAccount,
+    resetBrandAccounts,
     generateId,
   };
 }

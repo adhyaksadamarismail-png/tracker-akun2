@@ -17,6 +17,8 @@ export interface Account {
   phone_number: string;
   status: string; // e.g. 'Aktif', 'Nonaktif' or custom note
   notes?: string;
+  bagian_number?: number; // Bagian number (1, 2, 3...) for Kopi Kenangan
+  slot_number?: number;   // Slot number (1, 2, 3) inside Bagian
   created_at?: string;
   vouchers?: Voucher[];
 }
