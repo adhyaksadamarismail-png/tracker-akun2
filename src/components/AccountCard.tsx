@@ -2,13 +2,14 @@
 
 import React, { useState } from 'react';
 import { Phone, Copy, Check, Edit2, Trash2, Tag, StickyNote } from 'lucide-react';
-import { Account, Voucher } from '../lib/types';
+import { Account } from '../lib/types';
 
 interface AccountCardProps {
   account: Account;
   onToggleVoucher: (voucherId: string, accountId: string) => void;
   onEdit: (account: Account) => void;
   onDelete: (account: Account) => void;
+  bagianLabel?: string; // e.g. "Nomor 1", "Nomor 2", "Nomor 3"
 }
 
 export default function AccountCard({
@@ -16,6 +17,7 @@ export default function AccountCard({
   onToggleVoucher,
   onEdit,
   onDelete,
+  bagianLabel,
 }: AccountCardProps) {
   const [copied, setCopied] = useState(false);
 
@@ -27,11 +29,19 @@ export default function AccountCard({
   };
 
   const availableVouchers = account.vouchers?.filter((v) => v.status === 'tersedia') || [];
-  const usedVouchers = account.vouchers?.filter((v) => v.status === 'used') || [];
 
   return (
-    <div className="bg-white rounded-2xl p-5 border border-slate-150 shadow-2xs hover:shadow-xs transition-all duration-200 flex flex-col justify-between relative group">
+    <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-2xs hover:shadow-xs transition-all duration-200 flex flex-col justify-between relative group">
       <div>
+        {/* Optional Bagian Label Badge (e.g. "Nomor 1") */}
+        {bagianLabel && (
+          <div className="mb-2.5 flex items-center justify-between border-b border-slate-100 pb-2">
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200/60 font-mono">
+              {bagianLabel}
+            </span>
+          </div>
+        )}
+
         {/* Top bar: Phone number & actions */}
         <div className="flex items-start justify-between gap-3 mb-3">
           <div className="flex items-center gap-2">

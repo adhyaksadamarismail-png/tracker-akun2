@@ -23,38 +23,63 @@ const DEFAULT_ACCOUNTS: Account[] = [
   {
     id: 'acc-1',
     brand_id: 'b-1',
-    phone_number: '081234567890',
+    phone_number: '081111111111',
     status: 'Aktif',
-    notes: 'Akun Kopi Kenangan Utama',
-    created_at: new Date().toISOString(),
+    notes: 'Kopi Kenangan Bagian 1 (Nomor 1)',
+    created_at: new Date(Date.now() - 10000).toISOString(),
     vouchers: [
       { id: 'v-1', account_id: 'acc-1', title: 'Tanpa Min', category: 'Tanpa Min', status: 'tersedia' },
-      { id: 'v-2', account_id: 'acc-1', title: 'Tanpa Min', category: 'Tanpa Min', status: 'used' },
-      { id: 'v-3', account_id: 'acc-1', title: 'Min 50K', category: 'Min 50K', status: 'tersedia' },
-      { id: 'v-4', account_id: 'acc-1', title: 'Min 70K', category: 'Min 70K', status: 'tersedia' },
+      { id: 'v-2', account_id: 'acc-1', title: 'Min 50K', category: 'Min 50K', status: 'tersedia' },
+      { id: 'v-3', account_id: 'acc-1', title: 'Min 70K', category: 'Min 70K', status: 'tersedia' },
     ],
   },
   {
     id: 'acc-2',
-    brand_id: 'b-2',
-    phone_number: '085711223344',
+    brand_id: 'b-1',
+    phone_number: '081111111112',
     status: 'Aktif',
-    notes: 'Voucher Baperan',
-    created_at: new Date().toISOString(),
+    notes: 'Kopi Kenangan Bagian 1 (Nomor 2)',
+    created_at: new Date(Date.now() - 9000).toISOString(),
     vouchers: [
-      { id: 'v-5', account_id: 'acc-2', title: 'Voucher Kopken Baperan', status: 'tersedia' },
+      { id: 'v-4', account_id: 'acc-2', title: 'Tanpa Min', category: 'Tanpa Min', status: 'tersedia' },
+      { id: 'v-5', account_id: 'acc-2', title: 'Min 50K', category: 'Min 50K', status: 'tersedia' },
+      { id: 'v-6', account_id: 'acc-2', title: 'Min 70K', category: 'Min 70K', status: 'tersedia' },
     ],
   },
   {
     id: 'acc-3',
+    brand_id: 'b-1',
+    phone_number: '081111111113',
+    status: 'Aktif',
+    notes: 'Kopi Kenangan Bagian 1 (Nomor 3)',
+    created_at: new Date(Date.now() - 8000).toISOString(),
+    vouchers: [
+      { id: 'v-7', account_id: 'acc-3', title: 'Tanpa Min', category: 'Tanpa Min', status: 'tersedia' },
+      { id: 'v-8', account_id: 'acc-3', title: 'Min 50K', category: 'Min 50K', status: 'tersedia' },
+      { id: 'v-9', account_id: 'acc-3', title: 'Min 70K', category: 'Min 70K', status: 'tersedia' },
+    ],
+  },
+  {
+    id: 'acc-4',
+    brand_id: 'b-2',
+    phone_number: '085711223344',
+    status: 'Aktif',
+    notes: 'Voucher Baperan',
+    created_at: new Date(Date.now() - 7000).toISOString(),
+    vouchers: [
+      { id: 'v-10', account_id: 'acc-4', title: 'Voucher Kopken Baperan', status: 'tersedia' },
+    ],
+  },
+  {
+    id: 'acc-5',
     brand_id: 'b-3',
     phone_number: '089988776655',
     status: 'Aktif',
     notes: 'Akun Tomoro Harian',
-    created_at: new Date().toISOString(),
+    created_at: new Date(Date.now() - 6000).toISOString(),
     vouchers: [
-      { id: 'v-6', account_id: 'acc-3', title: 'B1G1', category: 'B1G1', status: 'tersedia' },
-      { id: 'v-7', account_id: 'acc-3', title: '50%', category: '50%', status: 'used' },
+      { id: 'v-11', account_id: 'acc-5', title: 'B1G1', category: 'B1G1', status: 'tersedia' },
+      { id: 'v-12', account_id: 'acc-5', title: '50%', category: '50%', status: 'used' },
     ],
   },
 ];
@@ -64,7 +89,6 @@ export function useVoucherTracker() {
   const [accounts, setAccounts] = useState<Account[]>(DEFAULT_ACCOUNTS);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  // Helper to generate IDs
   const generateId = () => 'id_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now();
 
   // Load Initial Data
@@ -87,7 +111,8 @@ export function useVoucherTracker() {
 
         const { data: dbAccounts, error: aError } = await supabase
           .from('accounts')
-          .select('*, vouchers(*)');
+          .select('*, vouchers(*)')
+          .order('created_at', { ascending: true });
 
         if (!aError && dbAccounts) {
           setAccounts(dbAccounts);
@@ -189,7 +214,7 @@ export function useVoucherTracker() {
     }
   };
 
-  // 2. Add Single Account
+  // 2. Add Single Account (Appended to preserve order)
   const addAccount = async (input: CreateAccountInput) => {
     const targetBrand = brands.find((b) => b.id === input.brand_id);
     const newAccId = generateId();
@@ -279,7 +304,8 @@ export function useVoucherTracker() {
       vouchers: createdVouchers,
     };
 
-    const updatedAccounts = [newAccount, ...accounts];
+    // Appended to preserve order so it lands in the last Bagian slot or creates a new Bagian!
+    const updatedAccounts = [...accounts, newAccount];
     setAccounts(updatedAccounts);
 
     if (isSupabaseConfigured) {
@@ -311,14 +337,13 @@ export function useVoucherTracker() {
     }
   };
 
-  // 3. BULK IMPORT ACCOUNTS
+  // 3. BULK IMPORT ACCOUNTS (Strict order preservation)
   const importAccountsBatch = (brandId: string, rawText: string): ImportResult => {
     const targetBrand = brands.find((b) => b.id === brandId);
     if (!targetBrand) {
       return { successCount: 0, failedCount: 0, failedDetails: [] };
     }
 
-    // Split lines & trim spaces
     const lines = rawText
       .split(/[\r\n]+/)
       .map((line) => line.trim())
@@ -331,40 +356,33 @@ export function useVoucherTracker() {
     const allNewVouchers: Voucher[] = [];
     const failedDetails: Array<{ phone: string; reason: string }> = [];
 
-    // Validation Regex (phone digits, starting 0 or 62)
     const phoneRegex = /^(\+?62|0)?[0-9]{8,14}$/;
+    const baseTimestamp = Date.now();
 
-    lines.forEach((line) => {
+    lines.forEach((line, index) => {
       const cleanPhone = line.replace(/[\s\-]/g, '');
 
-      // Validation 1: Format check
       if (!cleanPhone || !phoneRegex.test(cleanPhone)) {
         failedDetails.push({ phone: line, reason: 'Nomor tidak valid' });
         return;
       }
 
-      // Validation 2: Existing in DB / State check
       if (existingPhoneSet.has(cleanPhone)) {
         failedDetails.push({ phone: cleanPhone, reason: 'Nomor sudah ada' });
         return;
       }
 
-      // Validation 3: Duplicate within current paste list check
       if (processedInCurrentBatch.has(cleanPhone)) {
         failedDetails.push({ phone: cleanPhone, reason: 'Duplikat' });
         return;
       }
 
-      // Mark as processed
       processedInCurrentBatch.add(cleanPhone);
 
       const accId = generateId();
       const accountVouchers: Voucher[] = [];
 
-      // Create Default Vouchers per Brand Rule
       if (targetBrand.type === 'kopi_kenangan') {
-        // EVERY Kopi Kenangan imported account MUST have:
-        // 1 Tanpa Min, 1 Min 50K, 1 Min 70K (🟢 Tersedia)
         accountVouchers.push({
           id: generateId(),
           account_id: accId,
@@ -387,7 +405,6 @@ export function useVoucherTracker() {
           status: 'tersedia',
         });
       } else if (targetBrand.type === 'kopken_baperan') {
-        // 1 Voucher Kopken Baperan (🟢 Tersedia)
         accountVouchers.push({
           id: generateId(),
           account_id: accId,
@@ -395,7 +412,6 @@ export function useVoucherTracker() {
           status: 'tersedia',
         });
       } else if (targetBrand.type === 'tomoro') {
-        // 1 Voucher B1G1 and 1 Voucher 50% (🟢 Tersedia)
         accountVouchers.push({
           id: generateId(),
           account_id: accId,
@@ -411,7 +427,6 @@ export function useVoucherTracker() {
           status: 'tersedia',
         });
       } else {
-        // Custom Brand: 1 Default Voucher (🟢 Tersedia)
         accountVouchers.push({
           id: generateId(),
           account_id: accId,
@@ -420,13 +435,16 @@ export function useVoucherTracker() {
         });
       }
 
+      // Increment created_at by index milliseconds to guarantee strict chronological ordering
+      const accCreatedAt = new Date(baseTimestamp + index * 10).toISOString();
+
       const accObj: Account = {
         id: accId,
         brand_id: brandId,
         phone_number: cleanPhone,
         status: 'Aktif',
         notes: 'Hasil Bulk Import',
-        created_at: new Date().toISOString(),
+        created_at: accCreatedAt,
         vouchers: accountVouchers,
       };
 
@@ -435,11 +453,11 @@ export function useVoucherTracker() {
     });
 
     if (newAccounts.length > 0) {
-      const updatedAccounts = [...newAccounts, ...accounts];
+      // Append to existing accounts to maintain strict insertion order!
+      const updatedAccounts = [...accounts, ...newAccounts];
       setAccounts(updatedAccounts);
 
       if (isSupabaseConfigured) {
-        // Batch insert to Supabase Realtime Database
         (async () => {
           try {
             await supabase.from('accounts').insert(
@@ -449,6 +467,7 @@ export function useVoucherTracker() {
                 phone_number: a.phone_number,
                 status: a.status,
                 notes: a.notes,
+                created_at: a.created_at,
               }))
             );
 
@@ -573,7 +592,7 @@ export function useVoucherTracker() {
     }
   };
 
-  // 6. Delete Account
+  // 6. Delete Account (Auto re-indexes Bagian sequentially)
   const deleteAccount = async (accountId: string) => {
     const updatedAccounts = accounts.filter((acc) => acc.id !== accountId);
     setAccounts(updatedAccounts);
