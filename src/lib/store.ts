@@ -197,7 +197,7 @@ export function useVoucherTracker() {
     const createdVouchers: Voucher[] = [];
 
     if (targetBrand?.type === 'kopi_kenangan') {
-      const { tanpa_min_count = 0, min_50k_count = 0, min_70k_count = 0 } = input;
+      const { tanpa_min_count = 1, min_50k_count = 1, min_70k_count = 1 } = input;
 
       for (let i = 0; i < tanpa_min_count; i++) {
         createdVouchers.push({
@@ -318,7 +318,7 @@ export function useVoucherTracker() {
       return { successCount: 0, failedCount: 0, failedDetails: [] };
     }
 
-    // Split raw text by newline or comma/space
+    // Split lines & trim spaces
     const lines = rawText
       .split(/[\r\n]+/)
       .map((line) => line.trim())
@@ -331,35 +331,61 @@ export function useVoucherTracker() {
     const allNewVouchers: Voucher[] = [];
     const failedDetails: Array<{ phone: string; reason: string }> = [];
 
-    // Phone validation regex: 8-15 digits, starting with 0, +62, 62 or normal digits
-    const phoneRegex = /^(\+?62|0)?[0-9]{8,13}$/;
+    // Validation Regex (phone digits, starting 0 or 62)
+    const phoneRegex = /^(\+?62|0)?[0-9]{8,14}$/;
 
     lines.forEach((line) => {
-      // Clean phone number (strip spaces/dashes)
       const cleanPhone = line.replace(/[\s\-]/g, '');
 
-      // Validation 1: Format Check
+      // Validation 1: Format check
       if (!cleanPhone || !phoneRegex.test(cleanPhone)) {
-        failedDetails.push({ phone: line, reason: 'nomor tidak valid' });
+        failedDetails.push({ phone: line, reason: 'Nomor tidak valid' });
         return;
       }
 
-      // Validation 2: Duplicate Check against DB / State or within current batch
-      if (existingPhoneSet.has(cleanPhone) || processedInCurrentBatch.has(cleanPhone)) {
-        failedDetails.push({ phone: cleanPhone, reason: 'sudah ada' });
+      // Validation 2: Existing in DB / State check
+      if (existingPhoneSet.has(cleanPhone)) {
+        failedDetails.push({ phone: cleanPhone, reason: 'Nomor sudah ada' });
         return;
       }
 
-      // Mark as processed in this batch
+      // Validation 3: Duplicate within current paste list check
+      if (processedInCurrentBatch.has(cleanPhone)) {
+        failedDetails.push({ phone: cleanPhone, reason: 'Duplikat' });
+        return;
+      }
+
+      // Mark as processed
       processedInCurrentBatch.add(cleanPhone);
 
       const accId = generateId();
       const accountVouchers: Voucher[] = [];
 
-      // Generate Vouchers per Brand Rule
+      // Create Default Vouchers per Brand Rule
       if (targetBrand.type === 'kopi_kenangan') {
-        // Default: 0 vouchers for Tanpa Min, Min 50K, Min 70K
-        // accountVouchers remains []
+        // EVERY Kopi Kenangan imported account MUST have:
+        // 1 Tanpa Min, 1 Min 50K, 1 Min 70K (🟢 Tersedia)
+        accountVouchers.push({
+          id: generateId(),
+          account_id: accId,
+          title: 'Tanpa Min',
+          category: 'Tanpa Min',
+          status: 'tersedia',
+        });
+        accountVouchers.push({
+          id: generateId(),
+          account_id: accId,
+          title: 'Min 50K',
+          category: 'Min 50K',
+          status: 'tersedia',
+        });
+        accountVouchers.push({
+          id: generateId(),
+          account_id: accId,
+          title: 'Min 70K',
+          category: 'Min 70K',
+          status: 'tersedia',
+        });
       } else if (targetBrand.type === 'kopken_baperan') {
         // 1 Voucher Kopken Baperan (🟢 Tersedia)
         accountVouchers.push({
@@ -385,7 +411,7 @@ export function useVoucherTracker() {
           status: 'tersedia',
         });
       } else {
-        // Custom brand: 1 default voucher
+        // Custom Brand: 1 Default Voucher (🟢 Tersedia)
         accountVouchers.push({
           id: generateId(),
           account_id: accId,
@@ -413,7 +439,7 @@ export function useVoucherTracker() {
       setAccounts(updatedAccounts);
 
       if (isSupabaseConfigured) {
-        // Batch Insert to Supabase asynchronously
+        // Batch insert to Supabase Realtime Database
         (async () => {
           try {
             await supabase.from('accounts').insert(

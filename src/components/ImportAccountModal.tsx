@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { X, Upload, CheckCircle2, AlertCircle, Phone, Layers, RefreshCw } from 'lucide-react';
+import { X, Upload, CheckCircle2, AlertCircle, Layers, RefreshCw } from 'lucide-react';
 import { Brand } from '../lib/types';
 
 export interface ImportResult {
@@ -86,7 +86,7 @@ export default function ImportAccountModal({
             {/* Brand Selection */}
             <div>
               <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">
-                Pilih Brand Target
+                Pilih Brand
               </label>
               <div className="relative">
                 <select
@@ -106,28 +106,36 @@ export default function ImportAccountModal({
               </div>
             </div>
 
-            {/* Brand Voucher Rule Notice */}
-            <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200/80 text-xs text-slate-600">
-              <span className="font-semibold text-slate-800">Aturan Voucher Import ({currentBrand?.name}):</span>
+            {/* Brand Voucher Auto-Generation Rule Notice */}
+            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 text-xs text-slate-600 space-y-1">
+              <span className="font-bold text-slate-900">
+                Voucher Bawaan {currentBrand?.icon} {currentBrand?.name}:
+              </span>
               {currentBrand?.type === 'kopi_kenangan' && (
-                <p className="mt-1 text-slate-500">
-                  Akun dibuat dengan 0 voucher awal (Tanpa Min: 0, Min 50K: 0, Min 70K: 0). Dapat ditambah nanti via Edit.
-                </p>
+                <div className="text-emerald-800 bg-emerald-50/80 p-2.5 rounded-xl border border-emerald-100 mt-1 space-y-0.5 font-medium">
+                  <p>🟢 1 Voucher Tanpa Min</p>
+                  <p>🟢 1 Voucher Min 50K</p>
+                  <p>🟢 1 Voucher Min 70K</p>
+                  <p className="text-[11px] text-slate-500 font-normal pt-1">
+                    Setiap akun otomatis mendapatkan 3 voucher di atas dengan status 🟢 Tersedia.
+                  </p>
+                </div>
               )}
               {currentBrand?.type === 'kopken_baperan' && (
-                <p className="mt-1 text-slate-500">
-                  Otomatis dibuat <strong>1 Voucher Kopken Baperan (🟢 Tersedia)</strong> per akun.
-                </p>
+                <div className="text-emerald-800 bg-emerald-50/80 p-2.5 rounded-xl border border-emerald-100 mt-1 font-medium">
+                  <p>🟢 1 Voucher Kopken Baperan (1 akun = 1 voucher)</p>
+                </div>
               )}
               {currentBrand?.type === 'tomoro' && (
-                <p className="mt-1 text-slate-500">
-                  Otomatis dibuat <strong>1 Voucher B1G1</strong> dan <strong>1 Voucher 50% (🟢 Tersedia)</strong> per akun.
-                </p>
+                <div className="text-emerald-800 bg-emerald-50/80 p-2.5 rounded-xl border border-emerald-100 mt-1 space-y-0.5 font-medium">
+                  <p>🟢 1 Voucher B1G1</p>
+                  <p>🟢 1 Voucher 50%</p>
+                </div>
               )}
               {currentBrand?.type === 'custom' && (
-                <p className="mt-1 text-slate-500">
-                  Otomatis dibuat 1 voucher default per akun.
-                </p>
+                <div className="text-emerald-800 bg-emerald-50/80 p-2.5 rounded-xl border border-emerald-100 mt-1 font-medium">
+                  <p>🟢 1 Voucher Bawaan {currentBrand?.name}</p>
+                </div>
               )}
             </div>
 
@@ -135,22 +143,22 @@ export default function ImportAccountModal({
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                  Paste Daftar Nomor Telepon <span className="text-rose-500">*</span>
+                  Daftar Nomor Telepon <span className="text-rose-500">*</span>
                 </label>
-                <span className="text-xs text-slate-400 font-mono">
+                <span className="text-xs text-slate-500 font-mono font-semibold">
                   {lineCount} nomor terdeteksi
                 </span>
               </div>
               <textarea
                 value={rawText}
                 onChange={(e) => setRawText(e.target.value)}
-                placeholder={`Contoh:\n081234567890\n081234567891\n081234567892`}
+                placeholder={`081234567890\n081234567891\n081234567892\n081234567893`}
                 rows={8}
                 required
                 className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 font-mono text-sm placeholder:text-slate-400 focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all leading-relaxed"
               />
               <p className="text-[11px] text-slate-400 mt-1">
-                Setiap nomor dipisahkan dengan Enter (satu nomor per baris).
+                Paste nomor telepon, setiap nomor dipisahkan dengan Enter.
               </p>
             </div>
 
@@ -184,47 +192,37 @@ export default function ImportAccountModal({
           /* Import Results Summary Screen */
           <div className="p-6 space-y-5 max-h-[80vh] overflow-y-auto">
             
-            <div className="text-center py-2">
-              <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-3 border border-emerald-100">
+            <div className="text-center py-1">
+              <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-2.5 border border-emerald-100">
                 <CheckCircle2 className="w-6 h-6 stroke-[2]" />
               </div>
               <h3 className="text-lg font-bold text-slate-900">Proses Import Selesai</h3>
               <p className="text-xs text-slate-500 mt-0.5">
-                Brand: <strong className="text-slate-800">{currentBrand?.name}</strong>
+                Brand Target: <strong className="text-slate-800">{currentBrand?.icon} {currentBrand?.name}</strong>
               </p>
             </div>
 
-            {/* Success & Failed Stats */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="bg-emerald-50/80 p-4 rounded-2xl border border-emerald-100 text-center">
-                <span className="text-[11px] font-bold text-emerald-700 uppercase tracking-wider block mb-1">
-                  ✅ Berhasil
+            {/* Summary Stats */}
+            <div className="space-y-2">
+              <div className="bg-emerald-50/80 p-3.5 rounded-2xl border border-emerald-100 flex items-center justify-between">
+                <span className="text-sm font-bold text-emerald-800 flex items-center gap-1.5">
+                  <span>✅</span> Berhasil mengimport
                 </span>
-                <span className="text-2xl font-extrabold text-emerald-800">
-                  {importResult.successCount}
+                <span className="text-lg font-extrabold text-emerald-900 font-mono">
+                  {importResult.successCount} akun
                 </span>
-                <span className="text-xs text-emerald-600 block mt-0.5">akun ditambahkan</span>
               </div>
 
-              <div className={`p-4 rounded-2xl border text-center ${
-                importResult.failedCount > 0 ? 'bg-rose-50/80 border-rose-100' : 'bg-slate-50 border-slate-200'
-              }`}>
-                <span className={`text-[11px] font-bold uppercase tracking-wider block mb-1 ${
-                  importResult.failedCount > 0 ? 'text-rose-700' : 'text-slate-500'
-                }`}>
-                  ❌ Gagal
-                </span>
-                <span className={`text-2xl font-extrabold ${
-                  importResult.failedCount > 0 ? 'text-rose-800' : 'text-slate-600'
-                }`}>
-                  {importResult.failedCount}
-                </span>
-                <span className={`text-xs block mt-0.5 ${
-                  importResult.failedCount > 0 ? 'text-rose-600' : 'text-slate-400'
-                }`}>
-                  akun ditolak
-                </span>
-              </div>
+              {importResult.failedCount > 0 && (
+                <div className="bg-rose-50/80 p-3.5 rounded-2xl border border-rose-100 flex items-center justify-between">
+                  <span className="text-sm font-bold text-rose-800 flex items-center gap-1.5">
+                    <span>❌</span> Gagal mengimport
+                  </span>
+                  <span className="text-lg font-extrabold text-rose-900 font-mono">
+                    {importResult.failedCount} akun
+                  </span>
+                </div>
+              )}
             </div>
 
             {/* List of Failed Numbers & Reasons */}
@@ -241,8 +239,8 @@ export default function ImportAccountModal({
                       className="flex items-center justify-between bg-white px-3 py-2 rounded-xl border border-slate-200 text-xs font-mono"
                     >
                       <span className="text-slate-800 font-semibold">{item.phone}</span>
-                      <span className="text-[11px] px-2 py-0.5 bg-rose-50 text-rose-700 rounded-md border border-rose-200/60 font-sans">
-                        {item.reason}
+                      <span className="text-[11px] px-2 py-0.5 bg-rose-50 text-rose-700 rounded-md border border-rose-200/60 font-sans font-medium">
+                        ({item.reason})
                       </span>
                     </div>
                   ))}
