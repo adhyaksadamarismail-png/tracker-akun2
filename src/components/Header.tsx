@@ -1,7 +1,8 @@
 'use client';
 
 import React from 'react';
-import { Search, Plus, FolderPlus, LogOut, Download } from 'lucide-react';
+import Link from 'next/link';
+import { Search, Plus, FolderPlus, LogOut, Download, Zap } from 'lucide-react';
 
 interface HeaderProps {
   searchQuery: string;
@@ -92,6 +93,15 @@ export default function Header({
                 <Download className="w-4 h-4 text-sky-600" />
                 <span>📥 Import Akun</span>
               </button>
+
+              {/* Voucher Optimizer Page Link */}
+              <Link
+                href="/voucher-optimizer"
+                className="py-2.5 px-3.5 bg-gradient-to-r from-sky-500 to-sky-600 hover:from-sky-600 hover:to-sky-700 text-white font-medium text-xs sm:text-sm rounded-2xl shadow-xs hover:shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap"
+              >
+                <Zap className="w-4 h-4 text-sky-100 fill-sky-100" />
+                <span>⚡ Voucher Optimizer</span>
+              </Link>
 
               {/* Add Account Button */}
               <button
