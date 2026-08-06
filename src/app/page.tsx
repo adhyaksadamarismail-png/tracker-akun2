@@ -203,32 +203,32 @@ export default function Home() {
       />
 
       {/* Main Content Area */}
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 pt-6 flex-1 w-full">
+      <main className="max-w-6xl mx-auto px-3 sm:px-6 pt-3 sm:pt-4 flex-1 w-full">
         
         {/* Quick Summary Card */}
-        <div className="bg-white rounded-3xl p-5 border border-slate-150 shadow-2xs mb-6 flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-lg border border-emerald-100">
+        <div className="bg-white rounded-2xl p-3 border border-slate-150 shadow-2xs mb-3 flex items-center justify-between gap-2 flex-wrap sm:flex-nowrap">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-sm border border-emerald-100 shrink-0">
               ⚡
             </div>
             <div>
-              <h2 className="text-sm font-bold text-slate-900">Ringkasan Voucher</h2>
-              <p className="text-xs text-slate-500">Realtime data tersinkronisasi</p>
+              <h2 className="text-xs font-bold text-slate-900">Ringkasan Voucher</h2>
+              <p className="text-[10px] text-slate-500">Realtime sync</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-4 sm:gap-6 text-xs sm:text-sm">
-            <div className="bg-slate-50 px-3.5 py-2 rounded-2xl border border-slate-100">
-              <span className="text-slate-400 block text-[10px] font-semibold uppercase">Total Akun</span>
-              <span className="font-bold text-slate-800 text-sm">{stats.totalAccs} Akun</span>
+          <div className="flex items-center gap-2 text-xs">
+            <div className="bg-slate-50 px-2.5 py-1 rounded-xl border border-slate-100">
+              <span className="text-slate-400 block text-[9px] font-semibold uppercase">Akun</span>
+              <span className="font-bold text-slate-800 text-xs">{stats.totalAccs}</span>
             </div>
-            <div className="bg-emerald-50/60 px-3.5 py-2 rounded-2xl border border-emerald-100">
-              <span className="text-emerald-700 block text-[10px] font-semibold uppercase">Tersedia</span>
-              <span className="font-bold text-emerald-800 text-sm">🟢 {stats.availableVouchers} Voucher</span>
+            <div className="bg-emerald-50/60 px-2.5 py-1 rounded-xl border border-emerald-100">
+              <span className="text-emerald-700 block text-[9px] font-semibold uppercase">Tersedia</span>
+              <span className="font-bold text-emerald-800 text-xs">🟢 {stats.availableVouchers}</span>
             </div>
-            <div className="bg-slate-50 px-3.5 py-2 rounded-2xl border border-slate-100 hidden sm:block">
-              <span className="text-slate-400 block text-[10px] font-semibold uppercase">Total Voucher</span>
-              <span className="font-bold text-slate-700 text-sm">{stats.totalVouchers} Voucher</span>
+            <div className="bg-slate-50 px-2.5 py-1 rounded-xl border border-slate-100">
+              <span className="text-slate-400 block text-[9px] font-semibold uppercase">Total</span>
+              <span className="font-bold text-slate-700 text-xs">{stats.totalVouchers}</span>
             </div>
           </div>
         </div>
